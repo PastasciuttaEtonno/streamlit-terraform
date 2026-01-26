@@ -193,21 +193,6 @@ Esecuzione di terraform init e plan.
 
 ![Terraform Plan](./screenshots/6str.png)
 
-
-## Troubleshooting
-
-**Errore: "AWS Credentials Mancanti"**
-- Verificare che le variabili di ambiente siano impostate correttamente
-- Controllare il file `.env` se presente
-
-**Errore: "Terraform non trovato"**
-- Installare Terraform dal sito ufficiale
-- Aggiungere al PATH del sistema
-
-**Sessione persa**
-- I dati vengono memorizzati in `st.session_state`
-- Ricaricare la pagina per inizializzare di nuovo lo stato
-
 ---
 
 **Per semplificare la gestione dell'infrastruttura AWS**
