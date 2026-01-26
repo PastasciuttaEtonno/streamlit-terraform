@@ -161,6 +161,43 @@ streamlit-terraform/
 - I template Jinja2 sono in `templates/` e vengono renderizzati dinamicamente
 - L'autenticazione è opzionale e configurabile in `core/auth_sidebar.py`
 
+## Screenshot
+
+### 1. Home - Control Center
+Dashboard principale con metriche, architettura di rete e status di sistema.
+
+![Home - Control Center](./screenshots/1str.png)
+
+### 2. Architecture Configuration
+Pagina per configurare il progetto e le availability zone.
+
+![Architecture Configuration](./screenshots/2str.png)
+
+### 3. Network Module
+Configurazione della VPC, subnet e security groups.
+
+![Network Module](./screenshots/3str.png)
+
+### 4. EC2 Module
+Configurazione delle istanze EC2, storage e firewall.
+
+![EC2 Module](./screenshots/4str.png)
+
+### 5. Generated Code
+Visualizzazione del codice Terraform generato.
+
+![Generated Code](./screenshots/5str.png)
+
+### 6. Terraform Plan Execution
+Esecuzione di terraform init e plan.
+
+![Terraform Plan](./screenshots/6str.png)
+
+### 7. Terraform Plan Output
+Output dettagliato del piano di esecuzione.
+
+![Terraform Plan Output](./screenshots/7str.png)
+
 ## Troubleshooting
 
 **Errore: "AWS Credentials Mancanti"**
