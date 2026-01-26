@@ -53,6 +53,8 @@ Pagina "Terraform Plan" per:
 - Eseguire `terraform init` e `terraform plan`
 - Verificare le modifiche prima di applicarle
 - Consultare i log di esecuzione
+- Calcolo dei costi tramite Infracost (necessià di API Key)
+
 
 ## Requisiti
 
