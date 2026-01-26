@@ -166,17 +166,17 @@ streamlit-terraform/
 ### 1. Home - Control Center
 Dashboard principale con metriche, architettura di rete e status di sistema.
 
-![Home - Control Center](./screenshots/2str.png)
+![Home - Control Center](./screenshots/1str.png)
 
 ### 2. Architecture Configuration
 Pagina per configurare il progetto e le availability zone.
 
-![Architecture Configuration](./screenshots/3str.png)
+![Architecture Configuration](./screenshots/2str.png)
 
 ### 3. Network Module
 Configurazione della VPC, subnet e security groups.
 
-![Network Module](./screenshots/4str.png)
+![Network Module](./screenshots/3str.png)
 
 ### 4. EC2 Module
 Configurazione delle istanze EC2, storage e firewall.
