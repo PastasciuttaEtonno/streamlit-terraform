@@ -1,0 +1,49 @@
+# main.tf
+
+# 1. Modulo Network
+module "network" {
+  source = "./modules/network"
+
+  environment_name     = "{{ project_name }}"
+  vpc_cidr             = "{{ network.vpc_cidr }}"
+  
+  # Nuovi parametri dinamici
+  az_count             = {{ network.az_count }}
+  public_subnet_count  = {{ network.public_subnet_count }}
+  private_subnet_count = {{ network.private_subnet_count }}
+}
+
+# 2. Modulo EC2
+module "ec2" {
+  source = "./modules/ec2"
+
+  environment_name = "{{ project_name }}"
+  vpc_id           = module.network.vpc_id
+  
+  # Logica subnet (uguale a prima)
+  {% if ec2.subnet_type == 'private' %}
+  subnet_id           = module.network.private_subnet_ids[0]
+  associate_public_ip = false
+  {% else %}
+  subnet_id           = module.network.public_subnet_ids[0]
+  associate_public_ip = true
+  {% endif %}
+
+  ami_id          = "{{ ec2.ami_id }}"
+  instance_type   = "{{ ec2.instance_type }}"
+  instance_count  = {{ ec2.instance_count }}
+
+  key_name         = "{{ ec2.key_name }}"
+
+  # Passiamo la lista di porte così com'è (Python la stampa come [22, 80])
+  allowed_ports    = {{ ec2.allowed_ports }}
+  
+  disk_size        = {{ ec2.disk_size }}
+  disk_type        = "{{ ec2.disk_type }}"
+  
+  # Per lo user data usiamo un blocco "Heredoc" per evitare problemi con "a capo"
+  # EOF permette di passare testo multilinea pulito
+  user_data_script = <<EOF
+{{ ec2.user_data_script }}
+EOF
+}

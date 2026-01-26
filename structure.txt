@@ -1,0 +1,39 @@
+terraform-studio/
+│
+├─ app/                          # Streamlit UI
+│   ├─ streamlit_app.py
+│   └─ pages/
+│       ├─ 1_Architecture.py
+│       ├─ 2_Network_Module.py
+│       ├─ 3_EC2_Module.py
+│       ├─ 4_Generated_Code.py
+│       └─ 5_Terraform_Plan.py
+│
+├─ core/                         # Logica vera
+│   ├─ models.py
+│   ├─ aws_catalog.py
+│   ├─ template_renderer.py
+│   ├─ terraform_builder.py
+│   ├─ project_writer.py
+│   └─ terraform_runner.py
+│
+├─ templates/                    # SPECCHIO 1:1 della struttura terraform
+│   ├─ root/
+│   │   ├─ main.tf.j2
+│   │   ├─ variables.tf.j2
+│   │   ├─ outputs.tf.j2
+│   │   └─ provider.tf.j2
+│   │
+│   └─ modules/
+│       ├─ network/
+│       │   ├─ vpc.tf.j2
+│       │   ├─ security.tf.j2
+│       │   ├─ variables.tf.j2
+│       │   └─ outputs.tf.j2
+│       │
+│       └─ ec2/
+│           ├─ ec2.tf.j2
+│           ├─ variables.tf.j2
+│           └─ outputs.tf.j2
+│
+└─ output/

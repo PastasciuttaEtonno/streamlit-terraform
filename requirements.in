@@ -1,0 +1,10 @@
+streamlit
+jinja2
+python-dotenv
+pydantic
+rich
+python-slugify
+boto3
+pygments
+streamlit-ace
+docker
