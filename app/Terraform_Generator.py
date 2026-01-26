@@ -16,14 +16,16 @@ st.set_page_config(page_title="Terraform Studio", layout="wide")
 initialize_session_state()
 render_auth_sidebar()
 
-# Recupero configurazione
+# Recupero configurazione completa
 config = st.session_state.project_config
 net = config.network
 ec2 = config.ec2
+alb = config.alb
+rds = config.rds
 
 # --- HEADER ---
 st.title("Terraform Studio")
-st.markdown("### Infastracure As a Code Generator")
+st.markdown("### Infrastructure As Code Generator")
 st.markdown("---")
 
 # --- 1. KPI & METRICHE (CON COLORI) ---
@@ -36,7 +38,7 @@ with col2:
     st.metric(label="Regione AWS", value=config.region, border=True)
 
 with col3:
-    # Logica Colore: Verde se HA, Rosso se Singola AZ
+    # Logica Colore: Verde se HA (più zone), Rosso se Singola AZ
     is_ha = net.az_count > 1
     ha_val = f"{net.az_count} Zone (HA)" if is_ha else "1 Zona (Single)"
     st.metric(
@@ -48,80 +50,129 @@ with col3:
     )
 
 with col4:
-    # Stima risorse
-    st.metric(label="Risorse Totali", value=f"{ec2.instance_count} Istanze", border=True)
+    # Conteggio Risorse Attive
+    active_resources = ec2.instance_count
+    if alb.enabled: active_resources += 1 # Load Balancer
+    if rds.enabled: active_resources += 1 # Database Instance
+    
+    st.metric(label="Risorse Core Attive", value=f"{active_resources} Units", border=True)
 
 st.markdown("<br>", unsafe_allow_html=True) # Spaziatore
 
-# --- 2. DASHBOARD CARDS ---
-c_net, c_compute = st.columns(2)
+# --- 2. ARCHITECTURE CARDS (GRID 2x2) ---
+
+# RIGA 1: Network & Compute
+r1_c1, r1_c2 = st.columns(2)
 
 # --- CARD: RETE ---
-with c_net:
+with r1_c1:
     with st.container(border=True):
-        st.subheader("Network Architecture")
+        st.subheader("Network Layer")
         st.markdown(f"**VPC CIDR**: `{net.vpc_cidr}`")
-        
         st.divider()
         
-        # Visualizzazione Grafica Semplice
         c_sub1, c_sub2 = st.columns(2)
         with c_sub1:
-            st.info(f"**Public Subnets**: {net.public_subnet_count}\n\nGateway Internet")
+            st.info(f"**Public Subnets**: {net.public_subnet_count}\n\nIngress Point")
         with c_sub2:
             if net.private_subnet_count > 0:
-                st.success(f"**Private Subnets**: {net.private_subnet_count}\n\nBackend Sicuro")
+                st.success(f"**Private Subnets**: {net.private_subnet_count}\n\nSecure Backend")
             else:
-                st.warning("**Private Subnets**: 0\n\nNessun isolamento")
-            
-        # Analisi Architetturale
-        if net.private_subnet_count == 0:
-            st.error("**Attenzione**: Architettura 'Flat'. Database e backend sono esposti su IP pubblici.")
+                st.warning("**Private Subnets**: 0\n\nNo Isolation")
 
 # --- CARD: COMPUTE ---
-with c_compute:
+with r1_c2:
     with st.container(border=True):
-        st.subheader("Compute & Security")
+        st.subheader("Compute Layer")
         
-        # Tabella Specs
         c_spec1, c_spec2 = st.columns(2)
         with c_spec1:
-            st.markdown(f"**Instance**: `{ec2.instance_type}`")
-            st.markdown(f"**AMI**: `{ec2.ami_id}`")
+            st.markdown(f"**Count**: `{ec2.instance_count}` x `{ec2.instance_type}`")
+            st.markdown(f"**AMI**: `{ec2.ami_id[:12]}...`")
         with c_spec2:
-            placement_icon = "[PUBLIC]" if ec2.subnet_type == "public" else "[PRIVATE]"
-            st.markdown(f"**Placement**: {placement_icon} {ec2.subnet_type.capitalize()}")
-            st.markdown(f"**IP Pubblico**: {'Yes' if ec2.subnet_type == 'public' else 'No'}")
+            placement_color = "orange" if ec2.subnet_type == "public" else "green"
+            st.markdown(f"**Zone**: :{placement_color}[{ec2.subnet_type.upper()}]")
+            
+            # Storage info
+            st.markdown(f"**Disk**: {ec2.disk_size}GB ({ec2.disk_type})")
 
         st.divider()
         
-        # Sezione Storage & Firewall affiancata
-        c_store, c_firewall = st.columns(2)
+        # Logica porte aperte
+        st.markdown("**Firewall Rules (EC2):**")
+        if ec2.allowed_ports:
+            st.code(" ".join([str(p) for p in ec2.allowed_ports]), language="bash")
+        else:
+            st.caption("Nessuna porta esposta direttamente (Accesso via Internal/SSH).")
+
+# RIGA 2: Load Balancer & Database
+r2_c1, r2_c2 = st.columns(2)
+
+# --- CARD: LOAD BALANCER ---
+with r2_c1:
+    with st.container(border=True):
+        c_head, c_status = st.columns([3, 1])
+        c_head.subheader("Load Balancer")
         
-        with c_store:
-            st.markdown("#### Storage")
-            # Colore diverso se GP3 (veloce) o Standard
-            disk_color = "green" if ec2.disk_type in ["gp3", "io1"] else "orange"
-            st.markdown(f":{disk_color}[**{ec2.disk_size} GB**] ({ec2.disk_type})")
+        if alb.enabled:
+            c_status.success("ACTIVE")
             
-        with c_firewall:
-            st.markdown("#### Firewall")
-            if ec2.allowed_ports:
-                # Usiamo st.code per dare l'effetto "badge" tecnico
-                st.code(" ".join([str(p) for p in ec2.allowed_ports]), language="bash")
-            else:
-                st.error("Nessuna porta aperta")
+            st.markdown(f"**Name**: `{alb.name}`")
+            
+            c_alb1, c_alb2 = st.columns(2)
+            with c_alb1:
+                st.markdown(f"**Listener Port**: `{alb.ingress_port}`")
+            with c_alb2:
+                # Icona azione
+                action_icon = "📡" if alb.action_type == "forward" else "🔗" if alb.action_type == "redirect" else "🛑"
+                st.markdown(f"**Action**: {action_icon} `{alb.action_type.upper()}`")
+            
+            # Dettagli Routing
+            if alb.action_type == "redirect":
+                st.caption(f"Redirects to {alb.redirect_protocol}:{alb.redirect_port}")
+            elif alb.action_type == "fixed-response":
+                st.caption(f"Responds with {alb.fixed_response_code}")
+                
+        else:
+            c_status.error("OFF")
+            st.markdown("Il modulo Load Balancer è disabilitato.")
+            st.caption("Il traffico raggiunge direttamente le istanze EC2.")
 
-        # User Data Alert
-        if ec2.user_data_script:
-            with st.expander("Script di Avvio attivo"):
-                st.code(ec2.user_data_script, language="bash")
+# --- CARD: DATABASE ---
+with r2_c2:
+    with st.container(border=True):
+        c_head_db, c_status_db = st.columns([3, 1])
+        c_head_db.subheader("Database")
+        
+        if rds.enabled:
+            c_status_db.success("ACTIVE")
+            
+            c_db1, c_db2 = st.columns(2)
+            with c_db1:
+                engine_icon = "🐬" if rds.engine == "mysql" else "🐘"
+                st.markdown(f"**Engine**: {engine_icon} `{rds.engine}`")
+                st.markdown(f"**DB Name**: `{rds.db_name}`")
+            with c_db2:
+                st.markdown(f"**Class**: `{rds.instance_class}`")
+                st.markdown(f"**Storage**: `{rds.allocated_storage} GB`")
+            
+            st.divider()
+            st.markdown(f"**Security**: 🔒 Private Access Only")
+            st.caption(f"User: `{rds.username}`")
+            
+        else:
+            c_status_db.error("OFF")
+            st.markdown("Il modulo Database è disabilitato.")
+            st.caption("Nessuna persistenza dei dati configurata.")
 
-# --- 3. STATUS BAR (SEMAFORO) ---
+# --- 3. SYSTEM READINESS ---
 st.markdown("<br>", unsafe_allow_html=True)
 st.subheader("System Readiness")
 
 col_s1, col_s2, col_s3 = st.columns(3)
+
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+output_dir = os.path.join(base_dir, "output")
 
 with col_s1:
     # 1. Credenziali
@@ -132,15 +183,14 @@ with col_s1:
 
 with col_s2:
     # 2. Codice Generato
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    if os.path.exists(os.path.join(base_dir, "output", "main.tf")):
+    if os.path.exists(os.path.join(output_dir, "main.tf")):
         st.success("**Terraform Code**: Generato")
     else:
         st.warning("**Terraform Code**: In attesa")
 
 with col_s3:
     # 3. Init Status
-    if os.path.exists(os.path.join(base_dir, "output", ".terraform")):
+    if os.path.exists(os.path.join(output_dir, ".terraform")):
         st.info("**Provider Init**: Cache Trovata")
     else:
         st.warning("**Provider Init**: Da eseguire")
