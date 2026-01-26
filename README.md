@@ -42,13 +42,27 @@ Pagina "EC2 Module" per definire:
 - Porte aperte e firewall
 - User data script
 
-### 5. **Visualizzazione Codice**
+### 5. **Application Load Balancer**
+Pagina "Load Balancer" per configurare:
+- Abilitazione dell'ALB
+- Nome del Load Balancer
+- Porta di ascolto
+- Security rules automatiche (ALB -> EC2)
+
+### 6. **Database (RDS)**
+Pagina "Database Module" per configurare:
+- Motore Database (MySQL, PostgreSQL)
+- Classe istanza e storage
+- Credenziali (Username/Password)
+- Sicurezza (Subnet Private e SG Chaining)
+
+### 7. **Visualizzazione Codice**
 Pagina "Generated Code" mostra:
 - File Terraform generati (main.tf, providers.tf, outputs.tf)
 - Moduli (network, ec2)
 - Possibilità di scaricare il codice
 
-### 6. **Terraform Plan**
+### 8. **Terraform Plan**
 Pagina "Terraform Plan" per:
 - Eseguire `terraform init` e `terraform plan`
 - Verificare le modifiche prima di applicarle
@@ -130,8 +144,10 @@ streamlit-terraform/
 │       ├── 1_Architecture.py      # Configurazione progetto
 │       ├── 2_Network_Module.py    # Configurazione rete
 │       ├── 3_EC2_Module.py        # Configurazione compute
-│       ├── 3_Generated_Code.py    # Visualizza codice
-│       └── 4_Terraform_Plan.py    # Esegui plan
+│       ├── 4_LoadBalancer.py      # Configurazione ALB
+│       ├── 5_Database.py          # Configurazione RDS
+│       ├── 6_Generated_Code.py    # Visualizza codice
+│       └── 7_Terraform_Plan.py    # Esegui plan
 ├── core/
 │   ├── auth_sidebar.py            # Autenticazione
 │   ├── state_manager.py           # Gestione stato sessione
@@ -168,32 +184,42 @@ streamlit-terraform/
 ### 1. Home - Control Center
 Dashboard principale con metriche, architettura di rete e status di sistema.
 
-![Home - Control Center](./screenshots/1str.png)
+![Home - Control Center](./screenshots/1dashboard.png)
 
 ### 2. Architecture Configuration
 Pagina per configurare il progetto e le availability zone.
 
-![Architecture Configuration](./screenshots/2str.png)
+![Architecture Configuration](./screenshots/2architecture.png)
 
 ### 3. Network Module
 Configurazione della VPC, subnet e security groups.
 
-![Network Module](./screenshots/3str.png)
+![Network Module](./screenshots/3network.png)
 
 ### 4. EC2 Module
 Configurazione delle istanze EC2, storage e firewall.
 
-![EC2 Module](./screenshots/4str.png)
+![EC2 Module](./screenshots/4ec2.png)
 
-### 5. Generated Code
+### 5. Application Load Balancer
+Configurazione del Load Balancer e target group.
+
+![Application Load Balancer](./screenshots/5alb.png)
+
+### 6. Database Module
+Configurazione del database Amazon RDS con parametri di sicurezza.
+
+![Database Module](./screenshots/6database.png)
+
+### 7. Generated Code
 Visualizzazione del codice Terraform generato.
 
-![Generated Code](./screenshots/5str.png)
+![Generated Code](./screenshots/7codegen.png)
 
-### 6. Terraform Plan Execution
+### 8. Terraform Plan Execution
 Esecuzione di terraform init e plan.
 
-![Terraform Plan](./screenshots/6str.png)
+![Terraform Plan](./screenshots/8infrastructuregen.png)
 
 ---
 

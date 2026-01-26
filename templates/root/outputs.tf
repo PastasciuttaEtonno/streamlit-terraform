@@ -24,3 +24,13 @@ output "ec2_public_ips" {
   description = "IP Pubblici delle istanze create"
   value       = module.ec2.public_ips
 }
+
+output "alb_dns_name" {
+  description = "URL del Load Balancer"
+  # "try" evita errori se il modulo alb non esiste
+  value       = try(module.alb.dns_name, "ALB non abilitato")
+}
+
+output "rds_endpoint" {
+  value = try(module.rds.db_endpoint, "RDS non abilitato")
+}

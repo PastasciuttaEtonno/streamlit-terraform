@@ -129,7 +129,8 @@ if st.button("Salva Configurazione Rete", type="primary"):
         st.session_state.project_config.network.public_subnet_count = public_count
         st.session_state.project_config.network.private_subnet_count = private_count
         
-        st.success("✅ Configurazione aggiornata con successo!")
+        st.success("Configurazione aggiornata con successo!")
+        st.toast("Configurazione Rete salvata!", icon="💾")
         
         # Recap immediato
         st.info(f"""

@@ -116,4 +116,5 @@ with st.form("ec2_form"):
         if not key_name:
             st.warning("⚠️ Hai salvato senza specificare una Key Pair. Non potrai accedere via SSH!")
         else:
-            st.success("✅ Configurazione aggiornata!")
+            st.success("Configurazione aggiornata!")
+            st.toast("Configurazione EC2 salvata!", icon="💾")

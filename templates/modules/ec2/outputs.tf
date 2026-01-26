@@ -9,3 +9,7 @@ output "public_ips" {
   description = "Lista degli IP pubblici assegnati alle istanze"
   value       = aws_instance.web[*].public_ip
 }
+
+output "security_group_id" {
+  value = aws_security_group.web_sg.id
+}

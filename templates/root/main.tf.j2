@@ -47,3 +47,67 @@ module "ec2" {
 {{ ec2.user_data_script }}
 EOF
 }
+
+# 3. Modulo ALB (Opzionale)
+{% if alb.enabled %}
+module "alb" {
+  source = "./modules/alb"
+
+  environment_name    = "{{ project_name }}"
+  vpc_id              = module.network.vpc_id
+  public_subnet_ids   = module.network.public_subnet_ids
+  target_instance_ids = module.ec2.instance_ids
+  ingress_port        = {{ alb.ingress_port }}
+
+  # --- NUOVI PARAMETRI ROUTING ---
+  listener_action_type = "{{ alb.action_type }}"
+  
+  # Passiamo i valori condizionali (Jinja li riempie sempre, ma Terraform usa solo quelli che servono)
+  redirect_protocol    = "{{ alb.redirect_protocol }}"
+  redirect_port        = "{{ alb.redirect_port }}"
+  redirect_status_code = "{{ alb.redirect_status_code }}"
+  
+  fixed_response_body         = "{{ alb.fixed_response_body }}"
+  fixed_response_code         = "{{ alb.fixed_response_code }}"
+  fixed_response_content_type = "{{ alb.fixed_response_content_type }}"
+}
+{% endif %}
+
+# 4. SICUREZZA AVANZATA: EC2 accetta HTTP solo dall'ALB
+# Questa regola viene creata SOLO se l'ALB è abilitato.
+{% if alb.enabled %}
+resource "aws_security_group_rule" "allow_alb_to_ec2" {
+  type                     = "ingress"
+  from_port                = {{ alb.ingress_port }}
+  to_port                  = 80 # Porta interna dell'app (es. Nginx)
+  protocol                 = "tcp"
+  
+  # DOVE applichiamo la regola? Al Security Group delle EC2
+  security_group_id        = module.ec2.security_group_id
+  
+  # CHI può entrare? Solo il Security Group dell'ALB
+  source_security_group_id = module.alb.security_group_id
+}
+{% endif %}
+
+# 5. Modulo Database (Opzionale)
+{% if rds.enabled %}
+module "rds" {
+  source = "./modules/rds"
+
+  environment_name    = "{{ project_name }}"
+  vpc_id              = module.network.vpc_id
+  private_subnet_ids  = module.network.private_subnet_ids
+  
+  # PASSAGGIO CRITICO PER LA SICUREZZA
+  ec2_security_group_id = module.ec2.security_group_id
+
+  identifier          = "{{ rds.identifier }}"
+  engine              = "{{ rds.engine }}"
+  instance_class      = "{{ rds.instance_class }}"
+  allocated_storage   = {{ rds.allocated_storage }}
+  db_name             = "{{ rds.db_name }}"
+  username            = "{{ rds.username }}"
+  password            = "{{ rds.password }}"
+}
+{% endif %}

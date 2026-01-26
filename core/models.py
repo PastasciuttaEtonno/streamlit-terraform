@@ -35,8 +35,39 @@ class EC2Config(BaseModel):
     # 3. User Data
     user_data_script: str    # Script Bash di avvio
     
+class ALBConfig(BaseModel):
+    enabled: bool = False
+    name: str = "my-alb"
+    ingress_port: int = 80
+    
+    # Opzioni: "forward", "redirect", "fixed-response"
+    action_type: str = "forward" 
+    
+    # Parametri per Redirect
+    redirect_protocol: str = "HTTPS"
+    redirect_port: str = "443"
+    redirect_status_code: str = "HTTP_301" 
+    
+    # Parametri per Fixed Response
+    fixed_response_body: str = "Sito in manutenzione"
+    fixed_response_code: str = "503"
+    fixed_response_content_type: str = "text/plain"
+
+class RDSConfig(BaseModel):
+    enabled: bool = False
+    identifier: str = "my-app-db"
+    engine: str = "mysql" # mysql o postgres
+    instance_class: str = "db.t3.micro"
+    allocated_storage: int = 20 # GB
+    username: str = "adminuser"
+    password: str = "ChangeMe123!" # In produzione useremmo Secrets Manager!
+    db_name: str = "appdb"
+
 class ProjectConfig(BaseModel):
     project_name: str
     region: str
     network: NetworkConfig
     ec2: EC2Config
+    # Aggiungi il nuovo campo inizializzato di default
+    alb: ALBConfig = ALBConfig()
+    rds: RDSConfig = RDSConfig()

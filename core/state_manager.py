@@ -1,5 +1,5 @@
 import streamlit as st
-from core.models import ProjectConfig, NetworkConfig, EC2Config
+from core.models import ProjectConfig, NetworkConfig, EC2Config, ALBConfig, RDSConfig
 
 def initialize_session_state():
     """
@@ -27,6 +27,15 @@ def initialize_session_state():
                 disk_size=8,           # 20 GB
                 disk_type="gp3",        # General Purpose SSD (il nuovo standard)
                 user_data_script="#!/bin/bash\necho 'Hello from Terraform' > /var/www/html/index.html"
-                
-            )
+            ),
+            alb=ALBConfig(enabled=False, name="app-load-balancer", ingress_port=80),
+            rds=RDSConfig()
         )
+    
+    # --- State Migration / Hotfix ---
+    # Se l'utente ha una sessione vecchia senza 'rds', lo aggiungiamo dinamicamente.
+    # Questo evita l'AttributeError senza costringere a ricaricare la pagina con Crtl+R.
+    if hasattr(st.session_state, 'project_config') and not hasattr(st.session_state.project_config, 'rds'):
+        # Ricostruiamo l'oggetto o lo patchiamo. Pydantic permette setattr se non è frozen.
+        # Oppure più semplicemente:
+        st.session_state.project_config.rds = RDSConfig()

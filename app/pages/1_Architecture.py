@@ -39,4 +39,4 @@ with st.form("arch_form"):
         st.session_state.project_config.region = new_region
         
         st.success(f"✅ Progetto '{new_name}' impostato su {new_region}!")
-        st.toast("Dati salvati!", icon="💾")
+        st.toast("Configurazione Progetto salvata!", icon="💾")
