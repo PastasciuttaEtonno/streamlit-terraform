@@ -1,22 +1,31 @@
 import streamlit as st
-from core.models import ProjectConfig, NetworkConfig, EC2Config, ALBConfig, RDSConfig
+from core.models import (
+    ProjectConfig, 
+    AWSProjectConfig, 
+    AWSNetworkConfig, 
+    AWSEC2Config, 
+    AWSALBConfig, 
+    AWSRDSConfig,
+    GCPProjectConfig # Aggiugiamo per completezza se dovessi fare switch futuri
+)
 
 def initialize_session_state():
     """
-    Controlla se lo stato esiste. Se no, lo crea con i default.
+    Controlla se lo stato esiste. Se no, lo crea con i default (AWS).
     Da chiamare all'inizio di OGNI pagina.
     """
     if "project_config" not in st.session_state:
-        st.session_state.project_config = ProjectConfig(
+        # Default initialize to AWS
+        st.session_state.project_config = AWSProjectConfig(
             project_name="MyTerraformProject",
             region="us-east-1",
-            network=NetworkConfig(
+            network=AWSNetworkConfig(
                 vpc_cidr="10.0.0.0/16",
                 az_count=1,               # Default: 2 AZ
                 public_subnet_count=1,    # Default: 2 Public
                 private_subnet_count=1    # Default: 2 Private
             ),
-            ec2=EC2Config(
+            ec2=AWSEC2Config(
                 instance_type="t3.micro",
                 instance_count=1,
                 ami_id="ami-0c7217cdde317cfec",
@@ -28,14 +37,14 @@ def initialize_session_state():
                 disk_type="gp3",        # General Purpose SSD (il nuovo standard)
                 user_data_script="#!/bin/bash\necho 'Hello from Terraform' > /var/www/html/index.html"
             ),
-            alb=ALBConfig(enabled=False, name="app-load-balancer", ingress_port=80),
-            rds=RDSConfig()
+            alb=AWSALBConfig(enabled=False, name="app-load-balancer", ingress_port=80),
+            rds=AWSRDSConfig()
         )
     
     # --- State Migration / Hotfix ---
-    # Se l'utente ha una sessione vecchia senza 'rds', lo aggiungiamo dinamicamente.
-    # Questo evita l'AttributeError senza costringere a ricaricare la pagina con Crtl+R.
-    if hasattr(st.session_state, 'project_config') and not hasattr(st.session_state.project_config, 'rds'):
-        # Ricostruiamo l'oggetto o lo patchiamo. Pydantic permette setattr se non è frozen.
-        # Oppure più semplicemente:
-        st.session_state.project_config.rds = RDSConfig()
+    # Rimuoviamo la patch per RDS se non necessaria o aggiorniamola per AWS
+    if hasattr(st.session_state, 'project_config'):
+        config = st.session_state.project_config
+        # Controllo provider per evitare errori su GCP config che non ha RDS
+        if config.provider == "aws" and not hasattr(config, 'rds'):
+             config.rds = AWSRDSConfig()

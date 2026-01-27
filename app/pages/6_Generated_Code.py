@@ -30,7 +30,7 @@ with st.expander("Vedi configurazione JSON completa"):
 if st.button("🚀 Genera Terraform Code", type="primary"):
     try:
         # 1. Inizializza Render
-        renderer = TerraformRenderer(TEMPLATE_DIR, OUTPUT_DIR)
+        renderer = TerraformRenderer(TEMPLATE_DIR, OUTPUT_DIR, provider=config.provider)
         
         # 2. Renderizza usando i dati dello stato
         renderer.render_root(config.model_dump())

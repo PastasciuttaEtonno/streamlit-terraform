@@ -1,82 +1,46 @@
-# Terraform Studio
+# Terraform Studio (Multi-Cloud Edition)
 
-Una webapp interattiva basata su **Streamlit** per generare e gestire file **Terraform** in modo visuale, senza scrivere codice manualmente.
+Una webapp interattiva basata su **Streamlit** per generare e gestire file **Terraform** in modo visuale per **AWS** e **Google Cloud Platform (GCP)**.
 
 ## Descrizione
 
 Terraform Studio è uno strumento visuale che permette di:
-- **Configurare l'infrastruttura AWS** (VPC, Subnet, istanze EC2)
-- **Generare automaticamente file Terraform** pronti all'uso
-- **Visualizzare l'architettura** in tempo reale
-- **Eseguire terraform plan** per verificare le modifiche
-- **Gestire progetti multipli** con salvataggio dello stato
+- **Configurare l'infrastruttura Multi-Cloud** (AWS VPC/EC2 o GCP Network/Compute)
+- **Generare automaticamente file Terraform** pronti all'uso per il provider selezionato
+- **Visualizzare l'architettura** in tempo reale con dashboard dinamiche
+- **Eseguire terraform plan & apply** direttamente dall'interfaccia (Docker-based)
+- **Gestire l'autenticazione** in modo sicuro (AWS Keys o GCP Service Accounts)
 
 ## Caratteristiche Principali
 
-### 1. **Control Center**
-La pagina principale mostra:
-- **KPI Dashboard**: Metriche del progetto (Nome, Regione, Disponibilità, Risorse)
-- **Network Architecture**: Visualizzazione VPC CIDR, Subnet pubbliche/private
-- **Compute & Security**: Specifiche istanze EC2, tipo disco, porte firewall
-- **System Readiness**: Status delle credenziali AWS, codice generato, provider init
+### 1. **Multi-Cloud Control Center**
+La dashboard si adatta al provider selezionato:
+- **AWS**: KPI regionali, Availability Zones, ALB, RDS.
+- **GCP**: Project ID, Region, Network globale, Compute Engine.
 
-### 2. **Configurazione Progetto**
-Pagina "Architecture" per definire:
-- Nome progetto
-- Regione AWS
-- Numero di Availability Zone (HA)
+### 2. **Gestione Identità & Sicurezza**
+- **AWS**: Supporto per Access Key / Secret Key (manuali o da `.env`).
+- **GCP**: Upload sicuro di **JSON Service Account Key** (salvate temporaneamente in sessione/locali protetti).
 
-### 3. **Configurazione Rete**
-Pagina "Network Module" per configurare:
-- VPC CIDR block
-- Subnet pubbliche e private
-- Security groups
-- Route tables
+### 3. **Configurazione Rete (VPC)**
+- **AWS**: CIDR Block, Subnet Pubbliche/Private, NAT Gateways (simulati logicamente).
+- **GCP**: Custom VPC, Subnet Regionali, Cloud NAT (per istanze private), Firewall Rules (con target tags).
 
-### 4. **Configurazione Compute**
-Pagina "EC2 Module" per definire:
-- Tipo di istanza
-- AMI ID
-- Numero istanze
-- Tipo e dimensioni disco
-- Porte aperte e firewall
-- User data script
+### 4. **Compute Module**
+- **AWS EC2**: Scelta istanza (t2/t3), AMI, Key Pair, Security Groups.
+- **GCP Compute Engine**: Machine Type (e2, n1), Image Family, Zone, IP Pubblico (effimero) o Privato.
 
-### 5. **Application Load Balancer**
-Pagina "Load Balancer" per configurare:
-- Abilitazione dell'ALB
-- Nome del Load Balancer
-- Porta di ascolto
-- Security rules automatiche (ALB -> EC2)
-
-### 6. **Database (RDS)**
-Pagina "Database Module" per configurare:
-- Motore Database (MySQL, PostgreSQL)
-- Classe istanza e storage
-- Credenziali (Username/Password)
-- Sicurezza (Subnet Private e SG Chaining)
-
-### 7. **Visualizzazione Codice**
-Pagina "Generated Code" mostra:
-- File Terraform generati (main.tf, providers.tf, outputs.tf)
-- Moduli (network, ec2)
-- Possibilità di scaricare il codice
-
-### 8. **Terraform Plan**
-Pagina "Terraform Plan" per:
-- Eseguire `terraform init` e `terraform plan`
-- Verificare le modifiche prima di applicarle
-- Consultare i log di esecuzione
-- Calcolo dei costi tramite Infracost (necessià di API Key)
-
+### 5. **Generazione e Deploy**
+- **Codice Pulito**: Genera file `.tf` modulari e leggibili basati su template Jinja2.
+- **Terraform Runner**: Esegue `init`, `plan`, `apply` e `destroy` all'interno di container Docker effimeri per garantire isolamento e sicurezza.
+- **Stima Costi**: Integrazione con **Infracost** per previsioni di spesa.
 
 ## Requisiti
 
 - Python 3.8+
 - pip o uv (gestore pacchetti)
-- Credenziali AWS configurate
-- Docker 
-
+- Docker (per eseguire Terraform e Infracost)
+- Credenziali Cloud (AWS Access Keys o GCP JSON Key)
 
 ## Installazione
 
@@ -87,140 +51,66 @@ cd streamlit-terraform
 ```
 
 ### 2. Installare le dipendenze
+Con **uv** (consigliato):
+```bash
+uv sync
+```
+Oppure pip:
 ```bash
 pip install -r requirements.txt
 ```
 
-Oppure con **uv** (più veloce):
-```bash
-uv sync
+### 3. Struttura Cartelle (Nuova)
+Il progetto separa nettamente i template per facilitare l'estensione:
 ```
-
-### 3. Configurare le credenziali AWS
-Impostare le variabili di ambiente:
-```bash
-export AWS_ACCESS_KEY_ID=your_access_key
-export AWS_SECRET_ACCESS_KEY=your_secret_key
-```
-
-Oppure creare un file `.env`:
-```
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_DEFAULT_REGION=us-east-1
+templates/
+├── aws/          # Logica AWS (EC2, VPC, ALB, RDS)
+└── gcp/          # Logica GCP (Compute, Network)
 ```
 
 ## Utilizzo
 
 ### Avviare l'app
 ```bash
-streamlit run app/Terraform_Generator.py
-```
-
-Oppure con **uv**:
-```bash
 uv run streamlit run app/Terraform_Generator.py
 ```
+L'app si aprirà a `http://localhost:8501`.
 
-L'app si aprirà a `http://localhost:8501`
+### Workflow Multi-Cloud
 
-### Workflow tipico
-
-1. **Accedi** usando le credenziali (se abilitato nella sidebar)
-2. **Configura l'architettura** nella pagina Architecture
-3. **Imposta la rete** nella pagina Network Module
-4. **Configura le istanze** nella pagina EC2 Module
-5. **Visualizza il codice** in Generated Code
-6. **Genera il piano** in Terraform Plan
-7. **Scarica il codice** o applica direttamente
+1.  **Select Provider**: Dalla sidebar, scegli **AWS** o **GCP**.
+2.  **Authenticate**:
+    *   **AWS**: Inserisci le chiavi o usa `.env`.
+    *   **GCP**: Carica il file JSON della Service Account e imposta il Project ID.
+3.  **Configure**: Naviga le pagine (Network, Compute) che si adatteranno al provider scelto.
+4.  **Generate**: Vai su "Generated Code" per creare i file Terraform.
+5.  **Plan & Deploy**: Vai su "Terraform Plan" per eseguire il deploy reale.
 
 ## Struttura del Progetto
 
 ```
 streamlit-terraform/
 ├── app/
-│   ├── Terraform_Generator.py    # Main app
-│   └── pages/
-│       ├── 1_Architecture.py      # Configurazione progetto
-│       ├── 2_Network_Module.py    # Configurazione rete
-│       ├── 3_EC2_Module.py        # Configurazione compute
-│       ├── 4_LoadBalancer.py      # Configurazione ALB
-│       ├── 5_Database.py          # Configurazione RDS
-│       ├── 6_Generated_Code.py    # Visualizza codice
-│       └── 7_Terraform_Plan.py    # Esegui plan
+│   ├── Terraform_Generator.py     # Main Entrypoint & Dashboard
+│   └── pages/                     # Pagine Modulari (Architecture, Network, ecc.)
 ├── core/
-│   ├── auth_sidebar.py            # Autenticazione
-│   ├── state_manager.py           # Gestione stato sessione
-│   ├── models.py                  # Modelli dati
-│   ├── template_renderer.py       # Rendering template Jinja2
-│   ├── terraform_builder.py       # Build Terraform files
-│   ├── terraform_runner.py        # Esecuzione terraform
-│   └── project_writer.py          # Salvataggio progetti
+│   ├── auth_sidebar.py            # Gestione Auth (AWS/GCP)
+│   ├── models.py                  # Pydantic Models (Discriminated Unions)
+│   ├── terraform_runner.py        # Wrapper Docker per Terraform
+│   └── ...
 ├── templates/
-│   ├── root/                      # Template root modules
-│   └── modules/
-│       ├── ec2/                   # Template EC2 module
-│       └── network/               # Template network module
-├── output/                        # Terraform files generati
-└── requirements.txt               # Dipendenze Python
+│   ├── aws/                       # Jinja2 Templates AWS
+│   └── gcp/                       # Jinja2 Templates GCP
+├── output/                        # Artefatti generati
+└── .secrets/                      # Cartella sicura per chiavi temporanee (git-ignored)
 ```
 
-## Tecnologie Utilizzate
-
-- **Streamlit**: Framework per UI web interattiva
-- **Terraform**: Infrastructure as Code
-- **Jinja2**: Template engine per generare codice Terraform
-- **AWS SDK**: Interazione con AWS
-
-## Note Tecniche
-
-- Lo stato dell'app è gestito in `st.session_state` per persistenza durante la sessione
-- I file Terraform sono generati nella cartella `output/`
-- I template Jinja2 sono in `templates/` e vengono renderizzati dinamicamente
-- L'autenticazione è opzionale e configurabile in `core/auth_sidebar.py`
-
-## Screenshot
+## Screenshot (AWS)
 
 ### 1. Home - Control Center
-Dashboard principale con metriche, architettura di rete e status di sistema.
-
 ![Home - Control Center](./screenshots/1dashboard.png)
 
 ### 2. Architecture Configuration
-Pagina per configurare il progetto e le availability zone.
-
 ![Architecture Configuration](./screenshots/2architecture.png)
 
-### 3. Network Module
-Configurazione della VPC, subnet e security groups.
-
-![Network Module](./screenshots/3network.png)
-
-### 4. EC2 Module
-Configurazione delle istanze EC2, storage e firewall.
-
-![EC2 Module](./screenshots/4ec2.png)
-
-### 5. Application Load Balancer
-Configurazione del Load Balancer e target group.
-
-![Application Load Balancer](./screenshots/5alb.png)
-
-### 6. Database Module
-Configurazione del database Amazon RDS con parametri di sicurezza.
-
-![Database Module](./screenshots/6database.png)
-
-### 7. Generated Code
-Visualizzazione del codice Terraform generato.
-
-![Generated Code](./screenshots/7codegen.png)
-
-### 8. Terraform Plan Execution
-Esecuzione di terraform init e plan.
-
-![Terraform Plan](./screenshots/8infrastructuregen.png)
-
----
-
-**Per semplificare la gestione dell'infrastruttura AWS**
+*(Ulteriori screenshot disponibili nella cartella screenshots/)*

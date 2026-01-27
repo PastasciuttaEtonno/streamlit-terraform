@@ -1,0 +1,48 @@
+provider "google" {
+  project = "{{ gcp_project_id }}"
+  region  = "{{ region }}"
+}
+
+variable "region" {
+  description = "GCP Region"
+  default     = "{{ region }}"
+}
+
+module "network" {
+  source = "./modules/network"
+
+  project_id   = "{{ gcp_project_id }}"
+  network_name = "{{ project_name }}-vpc"
+  region       = "{{ region }}"
+  subnet_cidr  = "{{ network.subnet_cidr }}"
+  
+  # Logic: If compute instances are private, we need a NAT to reach the internet (e.g. for updates)
+  # This comes from the compute config but affects network infrastructure.
+  {% if compute.subnet_type == 'private' %}
+  enable_nat = true
+  {% else %}
+  enable_nat = false
+  {% endif %}
+}
+
+module "compute" {
+  source = "./modules/compute"
+  
+  depends_on = [module.network]
+
+  project_id    = "{{ gcp_project_id }}"
+  region        = "{{ region }}"
+  zone          = "{{ compute.zone }}"
+  instance_name = "{{ project_name }}-vm"
+  
+  machine_type   = "{{ compute.machine_type }}"
+  image_family   = "{{ compute.image_family }}"
+  image_project  = "{{ compute.image_project }}"
+  instance_count = {{ compute.instance_count }}
+  
+  network_name    = module.network.network_name
+  subnetwork_name = module.network.subnetwork_name
+  
+  # If public, we assign headers. If private, no external IP.
+  subnet_type = "{{ compute.subnet_type }}"
+}

@@ -12,13 +12,20 @@ from core.auth_sidebar import render_auth_sidebar
 initialize_session_state()
 render_auth_sidebar()
 
+config = st.session_state.project_config
+
+if config.provider != "aws":
+    st.header("4. Load Balancer")
+    st.warning("Il modulo Load Balancer non è ancora disponibile per GCP in questa versione.")
+    st.stop()
+
 # --- HEADER ---
-st.header("4. Application Load Balancer (ALB)")
+st.header("4. Application Load Balancer (ALB) - AWS")
 st.info("Distribuisci il traffico in entrata su più istanze per aumentare l'affidabilità e gestire il routing.")
 
 # Recupero configurazioni
-alb_config = st.session_state.project_config.alb
-ec2_config = st.session_state.project_config.ec2
+alb_config = config.alb
+ec2_config = config.ec2
 
 # --- LOGICA SUGGERIMENTI ---
 if ec2_config.instance_count > 1 and not alb_config.enabled:

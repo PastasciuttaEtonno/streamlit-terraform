@@ -12,13 +12,20 @@ from core.auth_sidebar import render_auth_sidebar
 initialize_session_state()
 render_auth_sidebar()
 
+config = st.session_state.project_config
+
+if config.provider != "aws":
+    st.header("5. Relational Database")
+    st.warning("Il modulo Database (Cloud SQL) non è ancora disponibile per GCP in questa versione.")
+    st.stop()
+
 # --- HEADER ---
-st.header("5. Relational Database (RDS)")
+st.header("5. Relational Database (RDS) - AWS")
 st.info("Configura un database gestito sicuro e persistente (Amazon RDS).")
 
 # Recupero configurazioni
-rds_config = st.session_state.project_config.rds
-net_config = st.session_state.project_config.network
+rds_config = config.rds
+net_config = config.network
 
 # --- ARCHITECTURE CHECK ---
 # Un database DEVE stare in subnet private. Se non ci sono, blocchiamo tutto.

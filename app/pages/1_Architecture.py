@@ -25,10 +25,23 @@ with st.form("arch_form"):
         )
         
     with col2:
+        if config.provider == "aws":
+            reg_label = "Regione AWS"
+            reg_options = ["us-east-1", "eu-west-1", "eu-central-1"]
+        else: # GCP
+            reg_label = "Regione GCP"
+            reg_options = ["us-central1", "europe-west1", "europe-west4"]
+
+        # Trova l'indice corrente se possibile, altrimenti 0
+        try:
+            curr_idx = reg_options.index(config.region)
+        except ValueError:
+            curr_idx = 0
+
         new_region = st.selectbox(
-            "Regione AWS",
-            options=["us-east-1", "eu-west-1", "eu-central-1"],
-            index=0 if config.region == "us-east-1" else 1 # Semplificazione per l'index
+            reg_label,
+            options=reg_options,
+            index=curr_idx
         )
         
     submitted = st.form_submit_button("Salva e Prosegui",type="primary")

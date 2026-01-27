@@ -27,14 +27,33 @@ class TerraformRunner:
             "-w", "/workspace",
         ]
 
-        # 2. Passiamo le credenziali AWS (se presenti)
+        # 3. Passiamo le credenziali AWS (se presenti)
         aws_vars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION"]
         for var in aws_vars:
             value = os.getenv(var)
             if value:
                 cmd.extend(["-e", f"{var}={value}"])
 
-        # 3. Aggiungiamo immagine e argomenti
+        # 4. Passiamo le credenziali GCP (se presenti)
+        gcp_creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if gcp_creds_path:
+            # Dobbiamo montare il file delle credenziali dentro il container
+            # Assumiamo che il file esista sull'host.
+            # Lo montiamo come /gcp_key.json e settiamo la variabile d'ambiente
+            
+            # Normalizziamo path per Docker Windows
+            host_key_path = os.path.abspath(gcp_creds_path)
+            if platform.system() == "Windows":
+                 host_key_path = host_key_path.replace("\\", "/")
+
+            # Aggiungiamo il volume mount per la chiave
+            # Nota: --volume host_path:container_path
+            cmd.extend(["-v", f"{host_key_path}:/gcp_key.json"])
+            
+            # Passiamo l'env var puntando al percorso INTERNO al container
+            cmd.extend(["-e", "GOOGLE_APPLICATION_CREDENTIALS=/gcp_key.json"])
+
+        # 5. Aggiungiamo immagine e argomenti
         cmd.append(self.docker_image)
         cmd.extend(tf_args)
 

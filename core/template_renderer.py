@@ -3,17 +3,28 @@ import shutil
 from jinja2 import Environment, FileSystemLoader
 
 class TerraformRenderer:
-    def __init__(self, template_dir: str, output_dir: str):
-        self.template_dir = os.path.abspath(template_dir)
+    def __init__(self, template_dir: str, output_dir: str, provider: str = "aws"):
+        self.base_template_dir = os.path.abspath(template_dir)
         self.output_dir = os.path.abspath(output_dir)
+        self.provider = provider
+        
+        # Costruiamo il path specifico per il provider (es. templates/aws)
+        self.template_dir = os.path.join(self.base_template_dir, self.provider)
         
         # Debug paths
-        print(f"🔧 Init Renderer:")
-        print(f"   Template Dir: {self.template_dir}")
+        print(f"🔧 Init Renderer ({self.provider}):")
+        print(f"   Base Template Dir: {self.base_template_dir}")
+        print(f"   Provider Template Dir: {self.template_dir}")
         print(f"   Output Dir:   {self.output_dir}")
         
         if not os.path.exists(self.template_dir):
-            raise FileNotFoundError(f"❌ Errore critico: La cartella template non esiste: {self.template_dir}")
+             # Fallback: Se la cartella provider non esiste, controlla se siamo ancora nella vecchia struttura piatta
+             # Questo aiuta durante la migrazione o se l'utente non ha ancora spostato i file
+             if os.path.exists(os.path.join(self.base_template_dir, "modules")):
+                 print(f"⚠️ Path provider non trovato, uso fallback su directory base.")
+                 self.template_dir = self.base_template_dir
+             else:
+                 raise FileNotFoundError(f"❌ Errore critico: La cartella template per '{provider}' non esiste: {self.template_dir}")
 
         self.env = Environment(
             loader=FileSystemLoader(self.template_dir),

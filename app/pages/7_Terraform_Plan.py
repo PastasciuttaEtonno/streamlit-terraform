@@ -40,7 +40,8 @@ with tab_plan:
     
     with col1:
         if st.button("🔄 Terraform Init", type="primary"):
-            with st.spinner("Scaricando provider AWS..."):
+            provider_name = st.session_state.project_config.provider.upper()
+            with st.spinner(f"Scaricando provider {provider_name}..."):
                 success, output = runner.init()
                 if success:
                     st.success("Init completato!")
