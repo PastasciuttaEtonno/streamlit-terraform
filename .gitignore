@@ -77,3 +77,4 @@ htmlcov/
 # Misc
 .cache/
 *.pid
+move_dirs.py
