@@ -29,6 +29,12 @@ class AWSEC2Config(BaseModel):
     disk_size: int
     disk_type: str
     user_data_script: str
+    
+    # Docker Config
+    docker_enabled: bool = False
+    docker_image: str = "nginx:latest"
+    container_port: int = 80
+    include_db_gui: bool = False
 
 class AWSALBConfig(BaseModel):
     enabled: bool = False
