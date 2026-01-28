@@ -1,0 +1,61 @@
+#!/bin/bash
+# 1. Setup Base & Docker
+dnf update -y
+dnf install -y docker git
+systemctl start docker
+systemctl enable docker
+usermod -aG docker ec2-user
+
+# Installazione Docker Compose plugin (Amazon Linux 2023)
+dnf install -y docker-compose-plugin
+
+# Creiamo la cartella del progetto
+mkdir -p /home/ec2-user/app
+cd /home/ec2-user/app
+
+# 2. Generazione dinamica del docker-compose.yml
+# Usiamo EOF per scrivere il file. 
+# NOTA: ${var} sono variabili Terraform (RDS), {{var}} sono variabili Jinja (Python)
+
+cat <<EOF > docker-compose.yml
+version: '3.8'
+
+services:
+  # --- LA TUA WEBAPP ---
+  webapp:
+    image: {{ docker_image }}
+    restart: always
+    ports:
+      - "80:{{ container_port }}"
+    environment:
+      # Passiamo le credenziali RDS all'app
+      - DB_HOST=${db_endpoint_clean}  # Senza porta
+      - DB_USER=${db_user}
+      - DB_PASS=${db_password}
+      - DB_NAME=${db_name}
+
+  # --- INTERFACCIA GRAFICA DB ---
+  {% if db_engine == 'mysql' %}
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=${db_endpoint_clean}
+      - PMA_USER=${db_user}
+      - PMA_PASSWORD=${db_password}
+  {% elif db_engine == 'postgres' %}
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgresql
+  {% endif %}
+
+EOF
+
+# 3. Avvio dello Stack
+docker compose up -d

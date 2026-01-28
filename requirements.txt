@@ -4,6 +4,8 @@ altair==6.0.0
     # via streamlit
 annotated-types==0.7.0
     # via pydantic
+asttokens==3.0.1
+    # via stack-data
 attrs==25.4.0
     # via
     #   jsonschema
@@ -25,24 +27,39 @@ charset-normalizer==3.4.4
 click==8.3.1
     # via streamlit
 colorama==0.4.6
-    # via click
+    # via
+    #   click
+    #   ipython
+decorator==5.2.1
+    # via ipython
 docker==7.1.0
     # via -r requirements.in
+executing==2.2.1
+    # via stack-data
 gitdb==4.0.12
     # via gitpython
 gitpython==3.1.46
     # via streamlit
 idna==3.11
     # via requests
+ipython==9.9.0
+    # via pyvis
+ipython-pygments-lexers==1.1.1
+    # via ipython
+jedi==0.19.2
+    # via ipython
 jinja2==3.1.6
     # via
     #   -r requirements.in
     #   altair
     #   pydeck
+    #   pyvis
 jmespath==1.1.0
     # via
     #   boto3
     #   botocore
+jsonpickle==4.1.1
+    # via pyvis
 jsonschema==4.26.0
     # via altair
 jsonschema-specifications==2025.9.1
@@ -51,10 +68,16 @@ markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
     # via jinja2
+matplotlib-inline==0.2.1
+    # via ipython
 mdurl==0.1.2
     # via markdown-it-py
 narwhals==2.15.0
     # via altair
+networkx==3.6.1
+    # via
+    #   -r requirements.in
+    #   pyvis
 numpy==2.4.1
     # via
     #   pandas
@@ -66,10 +89,16 @@ packaging==26.0
     #   streamlit
 pandas==2.3.3
     # via streamlit
+parso==0.8.5
+    # via jedi
 pillow==12.1.0
     # via streamlit
+prompt-toolkit==3.0.52
+    # via ipython
 protobuf==6.33.4
     # via streamlit
+pure-eval==0.2.3
+    # via stack-data
 pyarrow==23.0.0
     # via streamlit
 pydantic==2.12.5
@@ -81,6 +110,8 @@ pydeck==0.9.1
 pygments==2.19.2
     # via
     #   -r requirements.in
+    #   ipython
+    #   ipython-pygments-lexers
     #   rich
 python-dateutil==2.9.0.post0
     # via
@@ -92,6 +123,8 @@ python-slugify==8.0.4
     # via -r requirements.in
 pytz==2025.2
     # via pandas
+pyvis==0.3.2
+    # via -r requirements.in
 pywin32==311
     # via docker
 referencing==0.37.0
@@ -114,6 +147,8 @@ six==1.17.0
     # via python-dateutil
 smmap==5.0.2
     # via gitdb
+stack-data==0.6.3
+    # via ipython
 streamlit==1.53.1
     # via
     #   -r requirements.in
@@ -128,6 +163,10 @@ toml==0.10.2
     # via streamlit
 tornado==6.5.4
     # via streamlit
+traitlets==5.14.3
+    # via
+    #   ipython
+    #   matplotlib-inline
 typing-extensions==4.15.0
     # via
     #   altair
@@ -146,3 +185,5 @@ urllib3==2.6.3
     #   requests
 watchdog==6.0.0
     # via streamlit
+wcwidth==0.5.0
+    # via prompt-toolkit

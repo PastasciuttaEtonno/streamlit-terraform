@@ -8,3 +8,5 @@ boto3
 pygments
 streamlit-ace
 docker
+pyvis
+networkx
