@@ -35,10 +35,16 @@ variable "associate_public_ip" {
   default     = true # Default a true per retro-compatibilità, ma lo sovrascriveremo
 }
 
-variable "allowed_ports" {
-  description = "Lista di porte TCP da aprire"
-  type        = list(number)
-  default     = [22, 80]
+variable "security_group_rules" {
+  description = "Lista di regole per il Security Group"
+  type = list(object({
+    direction   = string
+    from_port   = number
+    to_port     = number
+    protocol    = string
+    cidr_blocks = list(string)
+  }))
+  default = []
 }
 
 variable "key_name" {

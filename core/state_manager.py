@@ -6,7 +6,10 @@ from core.models import (
     AWSEC2Config, 
     AWSALBConfig, 
     AWSRDSConfig,
-    GCPProjectConfig # Aggiugiamo per completezza se dovessi fare switch futuri
+    AWSALBConfig, 
+    AWSRDSConfig,
+    GCPProjectConfig,
+    SecurityGroupRule
 )
 
 def initialize_session_state():
@@ -32,7 +35,11 @@ def initialize_session_state():
                 subnet_type="public",
                 
                 key_name="",
-                allowed_ports=[22, 80], # Di base apriamo SSH e HTTP
+                security_group_rules=[
+                    SecurityGroupRule(direction="ingress", from_port=22, to_port=22, protocol="tcp", cidr_blocks=["0.0.0.0/0"]),
+                    SecurityGroupRule(direction="ingress", from_port=80, to_port=80, protocol="tcp", cidr_blocks=["0.0.0.0/0"])
+                ], 
+                # allowed_ports=[22, 80], # Di base apriamo SSH e HTTP
                 disk_size=8,           # 20 GB
                 disk_type="gp3",        # General Purpose SSD (il nuovo standard)
                 user_data_script="#!/bin/bash\necho 'Hello from Terraform' > /var/www/html/index.html"

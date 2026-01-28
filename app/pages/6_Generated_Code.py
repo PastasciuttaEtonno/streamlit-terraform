@@ -32,8 +32,8 @@ if st.button("🚀 Genera Terraform Code", type="primary"):
         # 1. Inizializza Render
         renderer = TerraformRenderer(TEMPLATE_DIR, OUTPUT_DIR, provider=config.provider)
         
-        # 1-BIS: Se Docker abilitato, pre-renderizziamo user_data.sh
-        if config.provider == "aws" and config.ec2.docker_enabled:
+        # 1-BIS: Se Docker abilitato, pre-renderizziamo user_data.sh (SOLO se non c'è override)
+        if config.provider == "aws" and config.ec2.docker_enabled and not config.ec2.override_user_data:
             # Render manuale del template user_data
             # NOTA: Usiamo "renderer.env" per riutilizzare l'ambiente Jinja già configurato
             # Ma il path del template user_data è in "modules/ec2/user_data.sh.j2"

@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 
 from core.state_manager import initialize_session_state
 from core.auth_sidebar import render_auth_sidebar
+from core.models import SecurityGroupRule
 
 initialize_session_state()
 render_auth_sidebar()
@@ -110,31 +111,103 @@ if config.provider == "aws":
         
         with c2:
             st.markdown("**Security Group (Firewall)**")
-            common_ports = {22: "SSH (22)", 80: "HTTP (80)", 443: "HTTPS (443)", 8080: "Alt-HTTP (8080)", 3306: "MySQL", 5432: "PostgreSQL"}
             
-            # Calcolo porte default dinamico
-            current_allowed = ec2_config.allowed_ports
-            # Se attivi Docker GUI, suggeriamo visivamente la 8080
-            if docker_enabled and include_db_gui and 8080 not in current_allowed:
-                current_allowed.append(8080)
+            # 1. Common Ports Logic
+            common_ports_map = {22: "SSH (22)", 80: "HTTP (80)", 443: "HTTPS (443)", 8080: "Alt-HTTP (8080)", 3306: "MySQL", 5432: "PostgreSQL"}
+            
+            # Separare regole "Comuni" da "Custom"
+            current_rules = ec2_config.security_group_rules
+            
+            # Identifichiamo quali porte "comuni" sono già attive
+            common_selected = []
+            custom_rules_data = []
 
-            selected_ports = st.multiselect(
-                "Porte Ingress Consentite",
-                options=list(common_ports.keys()),
-                default=current_allowed,
-                format_func=lambda x: common_ports.get(x, str(x))
+            for r in current_rules:
+                # Una regola è "comune" se è TCP, CIDR 0.0.0.0/0, e from_port == to_port e la porta è nella lista comune
+                is_common = (
+                    r.protocol == "tcp" and 
+                    len(r.cidr_blocks) == 1 and r.cidr_blocks[0] == "0.0.0.0/0" and
+                    r.from_port == r.to_port and
+                    r.from_port in common_ports_map
+                )
+                
+                if is_common:
+                    common_selected.append(r.from_port)
+                else:
+                    # Aggiungiamo ai dati per l'editor custom
+                    # Mappa "from_port" a "Port" (assumendo porte singole)
+                    custom_rules_data.append({
+                        "Direction": getattr(r, 'direction', 'ingress'),
+                        "Port": r.from_port,
+                        "Protocol": r.protocol,
+                        "CIDR": ",".join(r.cidr_blocks)
+                    })
+
+            # Auto-enable 8080 logic for Docker GUI
+            if docker_enabled and include_db_gui and 8080 not in common_selected:
+                common_selected.append(8080)
+
+            selected_common_ports = st.multiselect(
+                "Porte Comuni (Quick Select)",
+                options=list(common_ports_map.keys()),
+                default=list(set(common_selected)), # set per unicità
+                format_func=lambda x: common_ports_map.get(x, str(x))
             )
 
+            st.caption("Regole Personalizzate")
+            # Editor per regole custom
+            # Usiamo un dizionario per l'editor
+
+            
+            # HOTFIX: Se custom_rules_data è vuota, data_editor non mostra colonne e non fa aggiungere.
+            # Convertiamo in lista di dict con schema esplicito o aggiungiamo un dummy invisibile?
+            # Più pulito: aggiungiamo dummy row se vuoto, poi lo filtriamo?
+            # O meglio ancora: usiamo un DataFrame pandas che preserva lo schema anche se vuoto.
+            import pandas as pd
+            if not custom_rules_data:
+                df_rules = pd.DataFrame(columns=["Direction", "Port", "Protocol", "CIDR"])
+            else:
+                df_rules = pd.DataFrame(custom_rules_data)
+
+            edited_df = st.data_editor(
+                df_rules,
+                num_rows="dynamic",
+                column_config={
+                    "Direction": st.column_config.SelectboxColumn(options=["ingress", "egress"], required=True, default="ingress"),
+                    "Port": st.column_config.NumberColumn(min_value=0, max_value=65535, required=True),
+                    "Protocol": st.column_config.SelectboxColumn(options=["tcp", "udp"], required=True),
+                    "CIDR": st.column_config.TextColumn(help="Es. 0.0.0.0/0", required=True, default="0.0.0.0/0")
+                },
+                key="custom_rules_editor_v3",
+                hide_index=True 
+            )
+            
+            # Reconvertiamo in lista di dict per il salvataggio
+            # edited_custom_rules = edited_df.to_dict("records")
+            # N.B. edited_custom_rules va usato sotto nel salvataggio.
+            edited_custom_rules = edited_df.to_dict("records")
+
     # --- SEZIONE 4: USER DATA CUSTOM ---
-    # Mostriamo questo campo solo se Docker è spento, altrimenti useremo il template automatico
     user_data = ec2_config.user_data_script
     
-    if not docker_enabled:
-        with st.expander("📜 Custom User Data (Script manuale)", expanded=False):
-            user_data = st.text_area("Script Bash", value=ec2_config.user_data_script, height=100)
+    # Checkbox per override, visibile solo se Docker è attivo
+    override_user_data = getattr(ec2_config, 'override_user_data', False)
+    
+    if docker_enabled:
+        with st.expander("📜 User Data (Avvio)", expanded=False):
+            override_user_data = st.checkbox("Sovrascrivi lo script Docker automatico", value=override_user_data, help="Se attivo, puoi inserire uno script bash personalizzato che sostituirà quello generato automaticamente per Docker.")
+            
+            if override_user_data:
+                st.info("⚠️ Avviso: Sarai responsabile dell'installazione di Docker e dell'avvio del container nel tuo script.")
+                user_data = st.text_area("Script Bash Custom", value=ec2_config.user_data_script, height=150)
+            else:
+                 st.code(f"#!/bin/bash\n# Script automatico per Docker ({docker_image})...\n# Sarà generato al momento del download.", language="bash")
     else:
-        # Se Docker è attivo, ignoriamo visivamente questo campo (verrà sovrascritto dal generatore)
-        pass
+        # Docker disabilitato, campo sempre visibile
+        with st.expander("📜 Custom User Data (Script manuale)", expanded=False):
+            user_data = st.text_area("Script Bash", value=ec2_config.user_data_script, height=150)
+            # Se docker è spento, l'override è implicito (o irrilevante), ma per pulizia lo settiamo a False o manteniamo stato
+
 
     st.divider()
 
@@ -151,7 +224,35 @@ if config.provider == "aws":
         
         ec2_config.disk_size = disk_size
         ec2_config.disk_type = disk_type
-        ec2_config.allowed_ports = selected_ports
+        
+        # --- Ricostruzione Regole Security Group ---
+        new_rules = []
+        
+        # 1. Aggiungi regole comuni
+        for p in selected_common_ports:
+            new_rules.append(SecurityGroupRule(
+                direction="ingress", from_port=p, to_port=p, protocol="tcp", cidr_blocks=["0.0.0.0/0"]
+            ))
+            
+        # 2. Aggiungi regole custom dall'editor
+        for row in edited_custom_rules:
+            try:
+                # Gestione parsing CIDR (semplice split per ora)
+                cidrs = [c.strip() for c in row["CIDR"].split(",") if c.strip()]
+                if not cidrs: cidrs = ["0.0.0.0/0"]
+                
+                new_rules.append(SecurityGroupRule(
+                    direction=row["Direction"],
+                    from_port=int(row["Port"]),
+                    to_port=int(row["Port"]),
+                    protocol=row["Protocol"],
+                    cidr_blocks=cidrs
+                ))
+            except Exception as e:
+                st.error(f"Errore nel parsing della regola custom: {row}. Ignorata.")
+
+        ec2_config.security_group_rules = new_rules
+        # ec2_config.allowed_ports = selected_ports # Rimosso/Deprecated
         
         # Salviamo la configurazione Docker
         ec2_config.docker_enabled = docker_enabled
@@ -160,8 +261,11 @@ if config.provider == "aws":
         ec2_config.include_db_gui = include_db_gui
         
         # Gestione User Data
-        if not docker_enabled:
-             ec2_config.user_data_script = user_data
+        ec2_config.override_user_data = override_user_data
+        
+        # Salviamo lo script se l'utente ha scritto qualcosa (Docker OFF, oppure Docker ON + Override)
+        if not docker_enabled or (docker_enabled and override_user_data):
+                ec2_config.user_data_script = user_data
         
         # Feedback Utente
         st.success("Configurazione salvata con successo!")

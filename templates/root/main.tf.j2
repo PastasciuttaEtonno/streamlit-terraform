@@ -35,8 +35,18 @@ module "ec2" {
 
   key_name         = "{{ ec2.key_name }}"
 
-  # Passiamo la lista di porte così com'è (Python la stampa come [22, 80])
-  allowed_ports    = {{ ec2.allowed_ports }}
+  # Nuova logica rules
+  security_group_rules = [
+    {% for rule in ec2.security_group_rules %}
+    {
+      direction   = "{{ rule.direction }}"
+      from_port   = {{ rule.from_port }}
+      to_port     = {{ rule.to_port }}
+      protocol    = "{{ rule.protocol }}"
+      cidr_blocks = [{% for cidr in rule.cidr_blocks %}"{{ cidr }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
   
   disk_size        = {{ ec2.disk_size }}
   disk_type        = "{{ ec2.disk_type }}"

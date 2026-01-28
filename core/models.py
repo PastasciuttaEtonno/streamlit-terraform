@@ -19,13 +19,21 @@ class AWSNetworkConfig(BaseModel):
             raise ValueError('Formato CIDR non valido. Esempio corretto: 10.0.0.0/16')
         return v
 
+class SecurityGroupRule(BaseModel):
+    direction: Literal["ingress", "egress"] = "ingress"
+    from_port: int
+    to_port: int
+    protocol: str
+    cidr_blocks: List[str]
+
 class AWSEC2Config(BaseModel):
     instance_type: str
     instance_count: int
     ami_id: str
     subnet_type: str
     key_name: str
-    allowed_ports: List[int]
+    security_group_rules: List[SecurityGroupRule] = []
+    # allowed_ports: List[int] # Deprecated in favor of security_group_rules
     disk_size: int
     disk_type: str
     user_data_script: str
@@ -35,6 +43,9 @@ class AWSEC2Config(BaseModel):
     docker_image: str = "nginx:latest"
     container_port: int = 80
     include_db_gui: bool = False
+    
+    # User Data Override
+    override_user_data: bool = False
 
 class AWSALBConfig(BaseModel):
     enabled: bool = False

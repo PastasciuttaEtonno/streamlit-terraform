@@ -42,7 +42,7 @@ if selected_provider != current_provider:
             project_name=config.project_name,
             region="us-east-1",
             network=AWSNetworkConfig(vpc_cidr="10.0.0.0/16", az_count=2, public_subnet_count=2, private_subnet_count=2),
-            ec2=AWSEC2Config(instance_type="t3.micro", instance_count=1, ami_id="ami-x", subnet_type="public", key_name="", allowed_ports=[], disk_size=20, disk_type="gp3", user_data_script="")
+            ec2=AWSEC2Config(instance_type="t3.micro", instance_count=1, ami_id="ami-x", subnet_type="public", key_name="", security_group_rules=[], disk_size=20, disk_type="gp3", user_data_script="")
         )
     st.rerun()
 
@@ -115,8 +115,9 @@ if config.provider == "aws":
                 st.markdown(f"**Disk**: {ec2.disk_size}GB ({ec2.disk_type})")
             st.divider()
             st.markdown("**Firewall Rules (EC2):**")
-            if ec2.allowed_ports:
-                st.code(" ".join([str(p) for p in ec2.allowed_ports]), language="bash")
+            if ec2.security_group_rules:
+                rules_snapshot = [f"{r.protocol.upper()}:{r.from_port}" for r in ec2.security_group_rules]
+                st.code(" ".join(rules_snapshot), language="bash")
             else:
                 st.caption("Nessuna porta esposta direttamente.")
 

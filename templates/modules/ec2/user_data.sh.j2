@@ -1,20 +1,37 @@
 #!/bin/bash
 # 1. Setup Base & Docker
 
+# 1. Logging Debug Setup (CRITICAL)
+exec > >(tee /var/log/user_data_debug.log|logger -t user-data -s 2>/dev/console) 2>&1
+echo "Starting User Data Script at $(date)..."
+
 # Rilevamento OS (Simple)
 if command -v apt-get &> /dev/null; then
     # --- UBUNTU / DEBIAN ---
     echo "Detected apt-get. Using Ubuntu logic."
+    
+    # 1. Wait for any existing apt locks (unattended-upgrades often holds this at boot)
+    echo "Waiting for apt locks..."
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done
+    echo "Apt locks released."
+
+    export DEBIAN_FRONTEND=noninteractive
+    
+    # 2. Update & Install
+    echo "Running apt-get update..."
     apt-get update -y
+    
+    echo "Installing Docker..."
     apt-get install -y docker.io git curl
     
     # Installazione Docker Compose (v2 plugin)
-    # Su Ubuntu recenti e' spesso nel pacchetto docker-compose-plugin, ma a volte serve repo esterno.
-    # Proviamo installazione diretta, se fallisce usiamo il binario standalone.
+    echo "Installing plugins..."
     apt-get install -y docker-compose-plugin || echo "Plugin package not found in default repo"
 
     # Se docker compose command non funziona, scarichiamo binario (fallback robusto)
     if ! docker compose version &> /dev/null; then
+        echo "Example fallback for Docker Compose..."
         mkdir -p /usr/libexec/docker/cli-plugins
         curl -SL https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-x86_64 -o /usr/libexec/docker/cli-plugins/docker-compose
         chmod +x /usr/libexec/docker/cli-plugins/docker-compose
@@ -23,6 +40,10 @@ if command -v apt-get &> /dev/null; then
     systemctl start docker
     systemctl enable docker
     usermod -aG docker ubuntu
+    
+    # Verify installation
+    docker --version
+    echo "Docker install finished."
 
     APP_USER="ubuntu"
     APP_HOME="/home/ubuntu"

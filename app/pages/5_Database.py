@@ -38,47 +38,49 @@ with st.expander("ℹ️ Info Costi & Architettura (Leggi qui se vuoi risparmiar
 rds_config = config.rds
 net_config = config.network
 
-# --- ARCHITECTURE CHECK ---
-# RDS richiede:
-# 1. Almeno 2 Availability Zones (per coprire le requirements del DB Subnet Group)
-# 2. Almeno 2 Subnet Private (una per AZ)
-if net_config.az_count < 2 or net_config.private_subnet_count < 2:
-    st.error("🛑 **Errore Architetturale**: Requisiti RDS non soddisfatti.")
-    st.markdown(
-        """
-        Amazon RDS richiede che il **DB Subnet Group** copra almeno **2 Availability Zones**.
-        
-        **Configurazione Attuale:**
-        - Availability Zones: **{az}** (Richiesto: >= 2)
-        - Subnet Private: **{sub}** (Richiesto: >= 2)
-        
-        **Azione Richiesta:**
-        È necessario abilitare almeno 2 AZ e 2 Subnet Private.
-        Questo cambiamento è **GRATUITO** (nessun costo aggiuntivo per le subnet).
-        """
-    )
-    
-    col_err, col_fix = st.columns([3, 1])
-    with col_err:
-        st.warning("⚠️ Configurazione di rete non sufficiente per RDS.")
-    with col_fix:
-        if st.button("🔄 Correggi (Gratis)", type="primary", help="Imposta AZ=2 e Private Subnets=2 automaticamente"):
-            st.session_state.project_config.network.az_count = 2
-            # Assicuriamoci che ci siano almeno 2 subnet private
-            if st.session_state.project_config.network.private_subnet_count < 2:
-                st.session_state.project_config.network.private_subnet_count = 2
-            
-            # Se mancano subnet pubbliche per bilanciare (facoltativo ma consigliato), ne mettiamo 2
-            if st.session_state.project_config.network.public_subnet_count < 2:
-                st.session_state.project_config.network.public_subnet_count = 2
-                
-            st.rerun()
-
-    st.stop() # Blocchiamo comunque finché l'utente non clicca Fix
-
-
-# 1. Main Toggle (Aggiorna la pagina istantaneamente)
+# 1. Main Toggle (Spostato in alto)
 is_enabled = st.checkbox("Abilita Database RDS", value=rds_config.enabled)
+
+# --- ARCHITECTURE CHECK (SOLO SE RDS È ATTIVO) ---
+if is_enabled:
+    # RDS richiede:
+    # 1. Almeno 2 Availability Zones (per coprire le requirements del DB Subnet Group)
+    # 2. Almeno 2 Subnet Private (una per AZ)
+    if net_config.az_count < 2 or net_config.private_subnet_count < 2:
+        st.error("**Errore Architetturale**: Requisiti RDS non soddisfatti.")
+        st.markdown(
+            """
+            Amazon RDS richiede che il **DB Subnet Group** copra almeno **2 Availability Zones**.
+            
+            **Configurazione Attuale:**
+            - Availability Zones: **{az}** (Richiesto: >= 2)
+            - Subnet Private: **{sub}** (Richiesto: >= 2)
+            
+            **Azione Richiesta:**
+            È necessario abilitare almeno 2 AZ e 2 Subnet Private.
+            Questo cambiamento è **GRATUITO** (nessun costo aggiuntivo per le subnet).
+            """.format(az=net_config.az_count, sub=net_config.private_subnet_count)
+        )
+        
+        col_err, col_fix = st.columns([3, 1])
+        with col_err:
+            st.warning("⚠️ Configurazione di rete non sufficiente per RDS.")
+        with col_fix:
+            if st.button("🔄 Correggi (Gratis)", type="primary", help="Imposta AZ=2 e Private Subnets=2 automaticamente"):
+                st.session_state.project_config.network.az_count = 2
+                # Assicuriamoci che ci siano almeno 2 subnet private
+                if st.session_state.project_config.network.private_subnet_count < 2:
+                    st.session_state.project_config.network.private_subnet_count = 2
+                
+                # Se mancano subnet pubbliche per bilanciare (facoltativo ma consigliato), ne mettiamo 2
+                if st.session_state.project_config.network.public_subnet_count < 2:
+                    st.session_state.project_config.network.public_subnet_count = 2
+                    
+                st.rerun()
+        
+        st.stop() # Blocchiamo solo se RDS è abilitato e l'architettura non va bene.
+else:
+    st.success("✅ **Self-Managed Database**: Nessun requisito di rete imposto.")
 
 st.divider()
 

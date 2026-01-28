@@ -41,11 +41,15 @@ resource "aws_db_instance" "default" {
   username               = var.username
   password               = var.password
   parameter_group_name   = var.engine == "mysql" ? "default.mysql8.0" : "default.postgres16"
-  skip_final_snapshot    = true # Importante per dev/test (distrugge veloce)
   publicly_accessible    = false # MAI esporre il DB a internet
   
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.default.name
+
+  # --- DEV/TEST OPTIMIZATIONS ---
+  skip_final_snapshot     = true
+  backup_retention_period = 0
+  apply_immediately       = true
 
   # Forziamo a Single-AZ per risparmiare costi (il default è false, ma meglio essere espliciti)
   multi_az               = false
