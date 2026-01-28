@@ -78,7 +78,7 @@ htmlcov/
 .cache/
 *.pid
 move_dirs.py
-terraform_bundle.zip
 
 # Generated files
 topology.html
+terraform_bundle.zip
