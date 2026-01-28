@@ -1,6 +1,6 @@
 # 1. Subnet Group (Raggruppa le subnet private)
 resource "aws_db_subnet_group" "default" {
-  name       = "${var.environment_name}-db-subnet-group"
+  name       = "${lower(var.environment_name)}-db-subnet-group"
   subnet_ids = var.private_subnet_ids
 
   tags = {
@@ -46,4 +46,7 @@ resource "aws_db_instance" "default" {
   
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.default.name
+
+  # Forziamo a Single-AZ per risparmiare costi (il default è false, ma meglio essere espliciti)
+  multi_az               = false
 }

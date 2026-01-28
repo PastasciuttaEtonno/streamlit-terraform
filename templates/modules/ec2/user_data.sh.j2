@@ -1,23 +1,56 @@
 #!/bin/bash
 # 1. Setup Base & Docker
-dnf update -y
-dnf install -y docker git
-systemctl start docker
-systemctl enable docker
-usermod -aG docker ec2-user
 
-# Installazione Docker Compose plugin (Amazon Linux 2023)
-dnf install -y docker-compose-plugin
+# Rilevamento OS (Simple)
+if command -v apt-get &> /dev/null; then
+    # --- UBUNTU / DEBIAN ---
+    echo "Detected apt-get. Using Ubuntu logic."
+    apt-get update -y
+    apt-get install -y docker.io git curl
+    
+    # Installazione Docker Compose (v2 plugin)
+    # Su Ubuntu recenti e' spesso nel pacchetto docker-compose-plugin, ma a volte serve repo esterno.
+    # Proviamo installazione diretta, se fallisce usiamo il binario standalone.
+    apt-get install -y docker-compose-plugin || echo "Plugin package not found in default repo"
+
+    # Se docker compose command non funziona, scarichiamo binario (fallback robusto)
+    if ! docker compose version &> /dev/null; then
+        mkdir -p /usr/libexec/docker/cli-plugins
+        curl -SL https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-x86_64 -o /usr/libexec/docker/cli-plugins/docker-compose
+        chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+    fi
+
+    systemctl start docker
+    systemctl enable docker
+    usermod -aG docker ubuntu
+
+    APP_USER="ubuntu"
+    APP_HOME="/home/ubuntu"
+
+elif command -v dnf &> /dev/null; then
+    # --- AMAZON LINUX 2023 ---
+    echo "Detected dnf. Using Amazon Linux logic."
+    dnf update -y
+    dnf install -y docker git
+    dnf install -y docker-compose-plugin
+    
+    systemctl start docker
+    systemctl enable docker
+    usermod -aG docker ec2-user
+
+    APP_USER="ec2-user"
+    APP_HOME="/home/ec2-user"
+else
+    echo "Unsupported OS"
+    exit 1
+fi
 
 # Creiamo la cartella del progetto
-mkdir -p /home/ec2-user/app
-cd /home/ec2-user/app
+mkdir -p $APP_HOME/app
+cd $APP_HOME/app
 
-# 2. Generazione dinamica del docker-compose.yml
-# Usiamo EOF per scrivere il file. 
-# NOTA: ${var} sono variabili Terraform (RDS), {{var}} sono variabili Jinja (Python)
 
-cat <<EOF > docker-compose.yml
+cat <<DOCKER_EOF > docker-compose.yml
 version: '3.8'
 
 services:
@@ -28,11 +61,13 @@ services:
     ports:
       - "80:{{ container_port }}"
     environment:
-      # Passiamo le credenziali RDS all'app
-      - DB_HOST=${db_endpoint_clean}  # Senza porta
-      - DB_USER=${db_user}
-      - DB_PASS=${db_password}
-      - DB_NAME=${db_name}
+      # Credenziali App (Passate solo se RDS e' attivo)
+      {% if db_engine != 'none' %}
+      - DB_HOST=${module.rds.db_endpoint}
+      - DB_USER={{ db_user }}
+      - DB_PASS={{ db_password }}
+      - DB_NAME={{ db_name }}
+      {% endif %}
 
   # --- INTERFACCIA GRAFICA DB ---
   {% if db_engine == 'mysql' %}
@@ -42,9 +77,9 @@ services:
     ports:
       - "8080:80"
     environment:
-      - PMA_HOST=${db_endpoint_clean}
-      - PMA_USER=${db_user}
-      - PMA_PASSWORD=${db_password}
+      - PMA_HOST=${module.rds.db_endpoint}
+      - PMA_USER={{ db_user }}
+      - PMA_PASSWORD={{ db_password }}
   {% elif db_engine == 'postgres' %}
   adminer:
     image: adminer
@@ -52,10 +87,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ADMINER_DEFAULT_SERVER=postgresql
+      - ADMINER_DEFAULT_SERVER=${module.rds.db_endpoint}
   {% endif %}
 
-EOF
+DOCKER_EOF
 
 # 3. Avvio dello Stack
 docker compose up -d

@@ -23,25 +23,58 @@ if config.provider != "aws":
 st.header("5. Relational Database (RDS) - AWS")
 st.info("Configura un database gestito sicuro e persistente (Amazon RDS).")
 
+with st.expander("ℹ️ Info Costi & Architettura (Leggi qui se vuoi risparmiare)", expanded=False):
+    st.markdown("""
+    **Differenza tra '2 Subnet' e 'Multi-AZ Instance':**
+    - **AWS richiede** che il "Gruppo di Subnet" copra 2 Zone per motivi di ridondanza teorica. Questo è un requisito di rete **GRATUITO**.
+    - **Noi creeremo** un database **Single-AZ** (non ridondato) per mantenere i costi bassi (costo x1).
+    - Quindi: **Avere 2 AZ nella rete NON significa pagare doppio il database.**
+    
+    **Alternativa a costo zero (Docker):**
+    Se preferisci non usare RDS e gestire il DB a mano dentro la EC2 (come XAMPP/Docker), vai alla pagina **3. Compute** e attiva "Deploy Docker".
+    """)
+
 # Recupero configurazioni
 rds_config = config.rds
 net_config = config.network
 
 # --- ARCHITECTURE CHECK ---
-# Un database DEVE stare in subnet private. Se non ci sono, blocchiamo tutto.
-if net_config.private_subnet_count == 0:
-    st.error("🛑 **Errore Architetturale**: Nessuna Subnet Privata rilevata.")
+# RDS richiede:
+# 1. Almeno 2 Availability Zones (per coprire le requirements del DB Subnet Group)
+# 2. Almeno 2 Subnet Private (una per AZ)
+if net_config.az_count < 2 or net_config.private_subnet_count < 2:
+    st.error("🛑 **Errore Architetturale**: Requisiti RDS non soddisfatti.")
     st.markdown(
         """
-        Per motivi di sicurezza, i database RDS non devono mai essere esposti direttamente su Internet.
+        Amazon RDS richiede che il **DB Subnet Group** copra almeno **2 Availability Zones**.
+        
+        **Configurazione Attuale:**
+        - Availability Zones: **{az}** (Richiesto: >= 2)
+        - Subnet Private: **{sub}** (Richiesto: >= 2)
         
         **Azione Richiesta:**
-        1. Vai alla pagina **1. Network**.
-        2. Imposta "Numero Subnet Private" ad almeno **1** (meglio 2 per l'Alta Disponibilità).
-        3. Torna qui.
+        È necessario abilitare almeno 2 AZ e 2 Subnet Private.
+        Questo cambiamento è **GRATUITO** (nessun costo aggiuntivo per le subnet).
         """
     )
-    st.stop() # Ferma l'esecuzione della pagina qui
+    
+    col_err, col_fix = st.columns([3, 1])
+    with col_err:
+        st.warning("⚠️ Configurazione di rete non sufficiente per RDS.")
+    with col_fix:
+        if st.button("🔄 Correggi (Gratis)", type="primary", help="Imposta AZ=2 e Private Subnets=2 automaticamente"):
+            st.session_state.project_config.network.az_count = 2
+            # Assicuriamoci che ci siano almeno 2 subnet private
+            if st.session_state.project_config.network.private_subnet_count < 2:
+                st.session_state.project_config.network.private_subnet_count = 2
+            
+            # Se mancano subnet pubbliche per bilanciare (facoltativo ma consigliato), ne mettiamo 2
+            if st.session_state.project_config.network.public_subnet_count < 2:
+                st.session_state.project_config.network.public_subnet_count = 2
+                
+            st.rerun()
+
+    st.stop() # Blocchiamo comunque finché l'utente non clicca Fix
 
 
 # 1. Main Toggle (Aggiorna la pagina istantaneamente)

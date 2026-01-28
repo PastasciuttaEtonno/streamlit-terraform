@@ -35,6 +35,7 @@ if config.provider == "aws":
     # Togliendo st.form, questo widget ora triggera un RERUN immediato quando cambiato
     st.subheader("2. Availability Zones (AZs)")
     st.caption("Scegli su quante zone fisiche distribuire l'infrastruttura.")
+    st.info("ℹ️ **Nota sui Costi**: Selezionare più zone crea solo le sottoreti. **Non** lancia istanze extra e **non** ha costi aggiuntivi di per sé.")
 
     az_options = [1, 2, 3]
 
