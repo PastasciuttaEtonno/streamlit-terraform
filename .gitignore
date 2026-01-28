@@ -79,3 +79,6 @@ htmlcov/
 *.pid
 move_dirs.py
 terraform_bundle.zip
+
+# Generated files
+topology.html
