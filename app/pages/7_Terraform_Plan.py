@@ -11,6 +11,13 @@ from core.auth_sidebar import render_auth_sidebar
 
 # --- INIT ---
 initialize_session_state()
+
+# --- BUTTON STATE INIT ---
+if 'is_applying' not in st.session_state:
+    st.session_state.is_applying = False
+if 'is_destroying' not in st.session_state:
+    st.session_state.is_destroying = False
+
 render_auth_sidebar()
 
 st.header("5. Gestione Infrastruttura")
@@ -135,7 +142,11 @@ with tab_apply:
     
     confirm_deploy = st.checkbox("Ho controllato il Plan e confermo.")
     
-    if st.button("🚀 Esegui Deploy", type="primary", disabled=not confirm_deploy):
+    # Implementazione bottone con stato
+    disable_apply = (not confirm_deploy) or st.session_state.is_applying
+    st.button("🚀 Esegui Deploy", type="primary", disabled=disable_apply, on_click=lambda: st.session_state.__setitem__('is_applying', True))
+
+    if st.session_state.is_applying:
         
         # Container per lo stato di avanzamento
         with st.status("Deploy in corso...", expanded=True) as status:
@@ -191,6 +202,9 @@ with tab_apply:
                 status.update(label="Deploy Fallito ❌", state="error")
                 st.error("Errore durante il deploy.")
                 st.code(output)
+            
+            # Reset stato
+            st.session_state.is_applying = False
 
 # -----------------
 # TAB 3: DESTROY
@@ -202,7 +216,11 @@ with tab_destroy:
     # Doppio check di sicurezza
     confirm_destroy = st.text_input("Scrivi 'DESTROY' per confermare:")
     
-    if st.button("💣 Distruggi Tutto", type="primary", disabled=confirm_destroy != "DESTROY"):
+    # Implementazione bottone con stato
+    disable_destroy = (confirm_destroy != "DESTROY") or st.session_state.is_destroying
+    st.button("💣 Distruggi Tutto", type="primary", disabled=disable_destroy, on_click=lambda: st.session_state.__setitem__('is_destroying', True))
+
+    if st.session_state.is_destroying:
         with st.status("Distruzione in corso...", expanded=True) as status:
             st.write("Avvio Terraform Destroy...")
             success, output = runner.destroy()
@@ -213,3 +231,6 @@ with tab_destroy:
             else:
                 status.update(label="Errore nella distruzione ❌", state="error")
                 st.code(output)
+            
+            # Reset stato
+            st.session_state.is_destroying = False
